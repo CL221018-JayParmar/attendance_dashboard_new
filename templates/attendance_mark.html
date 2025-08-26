@@ -1,98 +1,50 @@
 {% extends 'base.html' %}
 {% block content %}
-<style>
-/* Your existing CSS here (same as aapne diya tha) */
-</style>
-
-<div class="attendance-container">
-    <div class="company-header">
-        <h1>📋 Employee Attendance System</h1>
-        <p>Position yourself in front of the camera and click "Mark Attendance"</p>
+<div class="attendance-container text-center py-5">
+  <h1>📋 Employee Attendance System</h1>
+  <p>Position yourself in front of the camera and click "Mark Attendance"</p>
+  <div class="video-container d-inline-block p-3 bg-light rounded shadow-sm">
+    <video id="video" width="500" height="400" autoplay muted></video>
+    <div>
+      <button id="markBtn" class="btn btn-success btn-lg rounded-pill mt-3">📷 Mark My Attendance</button>
     </div>
-    
-    <div class="video-container">
-        <video id="video" width="500" height="400" autoplay></video>
-        <div>
-            <button id="markBtn" class="capture-btn">
-                📷 Mark My Attendance
-            </button>
-        </div>
-        <div id="status">Ready to capture attendance</div>
-    </div>
+    <div id="status" class="mt-3 fw-bold fs-5"></div>
+  </div>
 </div>
 
 <script>
-const video = document.getElementById('video');
-const status = document.getElementById('status');
-const markBtn = document.getElementById('markBtn');
-let recorder, chunks = [];
+const video = document.getElementById('video'),
+      status = document.getElementById('status'),
+      markBtn = document.getElementById('markBtn');
 
-// Initialize webcam
-navigator.mediaDevices.getUserMedia({video: true, audio: false})
-    .then(stream => {
-        video.srcObject = stream;
-        status.innerHTML = '✅ Camera ready - Click button to mark attendance';
-    })
-    .catch(err => {
-        status.innerHTML = '❌ Camera access denied or not available';
-        status.className = 'error';
-    });
+navigator.mediaDevices.getUserMedia({video:true})
+  .then(stream => {
+    video.srcObject = stream;
+    status.textContent = '✅ Camera ready';
+  })
+  .catch(() => status.textContent = '❌ Camera access denied');
 
-// Start recording on button click
 markBtn.onclick = () => {
-    chunks = [];
-    status.innerHTML = '🔄 Processing... Please look at the camera';
-    status.className = 'processing';
-    markBtn.disabled = true;
-    
-    recorder = new MediaRecorder(video.srcObject);
-    
-    recorder.ondataavailable = e => {
-        if (e.data.size > 0) chunks.push(e.data);
-    };
-    
-    recorder.onstop = async () => {
-        const blob = new Blob(chunks, {type: 'video/webm'});
-        const formData = new FormData();
-        formData.append('video', blob);
-        
-        try {
-            const response = await fetch(window.location.pathname, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                status.innerHTML = `✅ ${data.message}`;
-                status.className = 'success';
-                setTimeout(() => {
-                    status.innerHTML = 'Ready for next attendance';
-                    status.className = '';
-                }, 4000);
-            } else {
-                status.innerHTML = `❌ ${data.message}`;
-                status.className = 'error';
-                setTimeout(() => {
-                    status.innerHTML = 'Ready to try again';
-                    status.className = '';
-                }, 3000);
-            }
-        } catch (error) {
-            status.innerHTML = '❌ Network error - Please try again';
-            status.className = 'error';
-        }
-        
-        markBtn.disabled = false;
-    };
-    
-    recorder.start();
-    setTimeout(() => {
-        if (recorder && recorder.state === 'recording') {
-            recorder.stop();
-        }
-    }, 3000);  // Increased recording time to 3 seconds
+  let chunks = [];
+  status.textContent = '🔄 Processing...';
+  markBtn.disabled = true;
+
+  let rec = new MediaRecorder(video.srcObject);
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = async () => {
+    let blob = new Blob(chunks, {type:'video/webm'});
+    let fd = new FormData(); fd.append('video', blob);
+    try {
+      let res = await fetch(window.location.pathname, {method:'POST', body:fd});
+      let d = await res.json();
+      status.textContent = res.ok ? `✅ ${d.message}` : `❌ ${d.message}`;
+    } catch {
+      status.textContent = '❌ Network error';
+    } 
+    markBtn.disabled = false;
+  };
+  rec.start();
+  setTimeout(() => rec.stop(), 3000);
 };
 </script>
 {% endblock %}

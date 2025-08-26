@@ -8,24 +8,24 @@
   </div>
   <div id="status" class="mt-3"></div>
 </div>
-
 <script>
-const video=document.getElementById('video'),status=document.getElementById('status');
+const video=document.getElementById('video'), status=document.getElementById('status');
 navigator.mediaDevices.getUserMedia({video:true})
   .then(s=>video.srcObject=s)
   .catch(e=>status.innerHTML='Camera error');
 document.getElementById('start-btn').onclick=()=>{
   status.innerHTML='Recording...';
-  let rec=new MediaRecorder(video.srcObject),chunks=[];
+  let rec=new MediaRecorder(video.srcObject), chunks=[];
   rec.ondataavailable=e=>chunks.push(e.data);
   rec.onstop=async()=>{
     status.innerHTML='Processing...';
     let blob=new Blob(chunks,{type:'video/webm'});
-    let fd=new FormData();fd.append('video',blob);
+    let fd=new FormData(); fd.append('video',blob);
     let res=await fetch(window.location.href,{method:'POST',body:fd});
     let d=await res.json();
-    if(res.ok) status.innerHTML=`<span class="text-success">${d.message}</span>`;
-    else status.innerHTML=`<span class="text-danger">${d.message}</span>`;
+    status.innerHTML = res.ok
+        ? `<span class="text-success">${d.message}</span>`
+        : `<span class="text-danger">${d.message}</span>`;
   };
   rec.start(); setTimeout(()=>rec.stop(),5000);
 };

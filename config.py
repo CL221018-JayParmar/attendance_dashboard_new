@@ -10,5 +10,5 @@ class Config:
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USERNAME = 'jay8085135710@gmail.com'
-    MAIL_PASSWORD = 'Jparmar@1234'  # Gmail App Password recommend karein
+    MAIL_PASSWORD = 'Jparmar@1234'
     MAIL_DEFAULT_SENDER = 'jay8085135710@gmail.com'
