@@ -102,9 +102,13 @@ def delete_employee(id):
     emb_path = os.path.join("static", "embeddings", f"{emp.id}_embeddings.pkl")
     if os.path.exists(emb_path):
         os.remove(emb_path)
-    db.session.delete(emp)
-    db.session.commit()
-    flash("Employee deleted.", "warning")
+    try:
+        db.session.delete(emp)
+        db.session.commit()
+        flash("Employee deleted.", "warning")
+    except Exception:
+        db.session.rollback()
+        flash("Error deleting employee - check related attendance records.", "danger")
     return redirect(url_for("dashboard"))
 
 @app.route("/capture/<int:id>", methods=["GET", "POST"])
@@ -141,13 +145,14 @@ def capture_face(id):
             if frame_count % 5 != 0:
                 frame_count += 1
                 continue
-            small = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
+            small = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
             rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
             landmarks_list = face_recognition.face_landmarks(rgb)
             if landmarks_list:
                 lm = landmarks_list[0]
                 if "left_eye" in lm and "right_eye" in lm:
-                    left = np.array(lm["left_eye"]); right = np.array(lm["right_eye"])
+                    left = np.array(lm["left_eye"])
+                    right = np.array(lm["right_eye"])
                     ear = (eye_aspect_ratio(left) + eye_aspect_ratio(right)) / 2.0
                     if ear < ear_threshold:
                         consecutive_frames += 1
@@ -164,8 +169,10 @@ def capture_face(id):
                         saved_images.append(path)
             frame_count += 1
 
-        vid.release(); os.remove(raw_path)
-        emp.face_data_folder = out_folder; db.session.commit()
+        vid.release()
+        os.remove(raw_path)
+        emp.face_data_folder = out_folder
+        db.session.commit()
 
         embeddings = []
         for img_path in saved_images:
@@ -185,53 +192,6 @@ def capture_face(id):
 
     return render_template("capture.html", employee=emp)
 
-@app.route("/attendance_mark", methods=["GET", "POST"])
-def attendance_mark_page():
-    if request.method == "POST":
-        video = request.files.get("video")
-        if not video:
-            return jsonify(message="No video"), 400
-        import tempfile
-        tmp = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.webm")
-        video.save(tmp)
-        vid = cv2.VideoCapture(tmp)
-        ret, frame = vid.read()
-        vid.release(); os.remove(tmp)
-        if not ret:
-            return jsonify(message="No frame detected"), 400
-        encs = face_recognition.face_encodings(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        if not encs:
-            return jsonify(message="No face detected"), 400
-        live = encs[0]; recognized = None
-        for emp in Employee.query.all():
-            p = os.path.join("static", "embeddings", f"{emp.id}_embeddings.pkl")
-            if os.path.exists(p):
-                with open(p,"rb") as f:
-                    stored = pickle.load(f)
-                if any(face_recognition.compare_faces(stored, live, tolerance=0.6)):
-                    recognized = emp; break
-        if not recognized:
-            return jsonify(message="Invalid Face – Attendance Not Marked"), 400
-        today = datetime.utcnow().date()
-        if Attendance.query.filter(
-            Attendance.employee_id==recognized.id,
-            db.func.date(Attendance.timestamp)==today
-        ).first():
-            return jsonify(message="Attendance already marked today"), 409
-        att = Attendance(employee_id=recognized.id, timestamp=datetime.utcnow())
-        db.session.add(att); db.session.commit()
-        try:
-            msg = Message("Attendance Confirmation",
-                          sender=app.config["MAIL_USERNAME"],
-                          recipients=[recognized.email])
-            msg.body = f"Your attendance was marked at {att.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
-            mail.send(msg)
-        except Exception:
-            pass
-        return jsonify(message=f"Attendance Marked! {recognized.name}"), 200
-
-    return render_template("attendance_mark.html")
-
 @app.route("/attendance_dashboard")
 @login_required
 def attendance_dashboard():
@@ -241,7 +201,7 @@ def attendance_dashboard():
     if date:
         try:
             d = datetime.fromisoformat(date).date()
-            q = q.filter(db.func.date(Attendance.timestamp)==d)
+            q = q.filter(db.func.date(Attendance.timestamp) == d)
         except Exception:
             pass
     if emp_name:
@@ -254,6 +214,56 @@ def attendance_dashboard():
         unique_days_count=len(unique_days)
     )
 
+@app.route("/attendance_mark", methods=["GET", "POST"])
+def attendance_mark_page():
+    if request.method == "POST":
+        video = request.files.get("video")
+        if not video:
+            return jsonify(message="No video"), 400
+        import tempfile
+        tmp = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.webm")
+        video.save(tmp)
+        vid = cv2.VideoCapture(tmp)
+        ret, frame = vid.read()
+        vid.release()
+        os.remove(tmp)
+        if not ret:
+            return jsonify(message="No frame detected"), 400
+        encs = face_recognition.face_encodings(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        if not encs:
+            return jsonify(message="No face detected"), 400
+        live = encs[0]
+        recognized = None
+        for emp in Employee.query.all():
+            p = os.path.join("static", "embeddings", f"{emp.id}_embeddings.pkl")
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    stored = pickle.load(f)
+                if any(face_recognition.compare_faces(stored, live, tolerance=0.6)):
+                    recognized = emp
+                    break
+        if not recognized:
+            return jsonify(message="Invalid Face – Attendance Not Marked"), 400
+        today = datetime.utcnow().date()
+        if Attendance.query.filter(
+            Attendance.employee_id == recognized.id,
+            db.func.date(Attendance.timestamp) == today
+        ).first():
+            return jsonify(message="Attendance already marked today"), 409
+        att = Attendance(employee_id=recognized.id, timestamp=datetime.utcnow())
+        db.session.add(att)
+        db.session.commit()
+        try:
+            msg = Message("Attendance Confirmation",
+                          sender=app.config["MAIL_USERNAME"],
+                          recipients=[recognized.email])
+            msg.body = f"Your attendance was marked at {att.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+            mail.send(msg)
+        except Exception:
+            pass
+        return jsonify(message=f"Attendance Marked! {recognized.name}"), 200
+    return render_template("attendance_mark.html")
+
 @app.route("/export_attendance_csv")
 @login_required
 def export_csv():
@@ -263,13 +273,14 @@ def export_csv():
     if date:
         try:
             d = datetime.fromisoformat(date).date()
-            q = q.filter(db.func.date(Attendance.timestamp)==d)
+            q = q.filter(db.func.date(Attendance.timestamp) == d)
         except Exception:
             pass
     if emp_name:
         q = q.filter(Employee.name.ilike(f"%{emp_name}%"))
     records = q.order_by(Attendance.timestamp.desc()).all()
-    output = StringIO(); writer = csv.writer(output)
+    output = StringIO()
+    writer = csv.writer(output)
     writer.writerow(["Name","Department","Date","Time"])
     for r in records:
         writer.writerow([
@@ -278,7 +289,8 @@ def export_csv():
             r.timestamp.strftime('%Y-%m-%d'),
             r.timestamp.strftime('%H:%M:%S')
         ])
-    csv_data = output.getvalue(); output.close()
+    csv_data = output.getvalue()
+    output.close()
     return Response(
         csv_data,
         mimetype="text/csv",

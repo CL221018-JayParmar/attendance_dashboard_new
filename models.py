@@ -16,8 +16,15 @@ class Employee(db.Model):
     contact = db.Column(db.String(20), nullable=False)
     face_data_folder = db.Column(db.String(200))
 
+    attendances = db.relationship(
+        'Attendance',
+        backref='employee',
+        lazy=True,
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
+
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id', ondelete='CASCADE'), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False)
-    employee = db.relationship('Employee', backref=db.backref('attendances', lazy=True))

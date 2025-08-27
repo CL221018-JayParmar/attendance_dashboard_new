@@ -1,33 +1,80 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center mt-5">
+<style>
+  .capture-container {
+    max-width: 700px;
+    margin: 3rem auto;
+    text-align: center;
+  }
+  .capture-container h3 {
+    font-weight: 700;
+    margin-bottom: 1.8rem;
+    color: #222b45;
+  }
+  #video {
+    border: 2px solid #baccf7;
+    border-radius: 15px;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 3px 15px rgba(44,62,80,0.09);
+  }
+  #start-btn {
+    background: #e6eeff;
+    color: #222b45;
+    border: 2px solid #baccf7;
+    border-radius: 9999px;
+    padding: 0.57rem 2.3rem;
+    font-size: 1.12rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    box-shadow: 0 3px 12px rgba(44,62,80,0.06);
+    cursor: pointer;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+  }
+  #start-btn:hover {
+    background: #d6e6fc;
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+  #status {
+    margin-top: 1rem;
+    font-weight: 600;
+  }
+</style>
+
+<div class="capture-container">
   <h3>Capture Face for {{ employee.name }}</h3>
-  <video id="video" width="600" autoplay class="border"></video>
-  <div class="mt-3">
-    <button id="start-btn" class="btn btn-success">Start Face Capture</button>
-  </div>
-  <div id="status" class="mt-3"></div>
+  <video id="video" autoplay></video>
+  <button id="start-btn">Start Face Capture</button>
+  <div id="status"></div>
 </div>
+
 <script>
-const video=document.getElementById('video'), status=document.getElementById('status');
+const video = document.getElementById('video');
+const status = document.getElementById('status');
+
 navigator.mediaDevices.getUserMedia({video:true})
-  .then(s=>video.srcObject=s)
-  .catch(e=>status.innerHTML='Camera error');
-document.getElementById('start-btn').onclick=()=>{
-  status.innerHTML='Recording...';
-  let rec=new MediaRecorder(video.srcObject), chunks=[];
-  rec.ondataavailable=e=>chunks.push(e.data);
-  rec.onstop=async()=>{
-    status.innerHTML='Processing...';
-    let blob=new Blob(chunks,{type:'video/webm'});
-    let fd=new FormData(); fd.append('video',blob);
-    let res=await fetch(window.location.href,{method:'POST',body:fd});
-    let d=await res.json();
-    status.innerHTML = res.ok
-        ? `<span class="text-success">${d.message}</span>`
-        : `<span class="text-danger">${d.message}</span>`;
+  .then(stream => video.srcObject = stream)
+  .catch(() => status.innerHTML = 'Camera error');
+
+document.getElementById('start-btn').onclick = () => {
+  status.innerHTML = 'Recording...';
+  let rec = new MediaRecorder(video.srcObject);
+  let chunks = [];
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = async () => {
+    status.innerHTML = 'Processing...';
+    let blob = new Blob(chunks, {type:'video/webm'});
+    let fd = new FormData();
+    fd.append('video', blob);
+    let res = await fetch(window.location.href, {method:'POST', body:fd});
+    let d = await res.json();
+    status.innerHTML = res.ok 
+      ? `<span style="color:green">${d.message}</span>` 
+      : `<span style="color:red">${d.message}</span>`;
   };
-  rec.start(); setTimeout(()=>rec.stop(),5000);
+  rec.start();
+  setTimeout(() => rec.stop(), 5000);
 };
 </script>
 {% endblock %}

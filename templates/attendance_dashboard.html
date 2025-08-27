@@ -1,88 +1,209 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container-fluid mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">📊 Attendance Records Dashboard</h3>
+<style>
+  .record-card {
+    max-width: 960px;
+    margin: 2rem auto;
+    background: #fff;
+    border-radius: 24px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 6px 28px rgba(44,62,80,0.06);
+  }
+  .record-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #222b45;
+  }
+  label {
+    font-weight: 600;
+    color: #293e5e;
+    display: block;
+    margin-bottom: 6px;
+  }
+  /* Compact input style for filter fields */
+  .compact-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 30px;
+    border: 2px solid #baccf7;
+    background: #e6eeff;
+    color: #283044;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 1px 5px rgba(44,62,80,0.04);
+    transition: border-color 0.3s ease;
+  }
+  .compact-input:focus {
+    border-color: #2563eb;
+    background: #d6e6fc;
+    outline: none;
+  }
+  .btn {
+    border-radius: 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    box-shadow: 0 3px 12px rgba(38,78,192,0.3);
+    transition: background-color 0.25s ease;
+  }
+  .btn-primary {
+    background-color: #2563eb;
+    color: #fff;
+    border: none;
+  }
+  .btn-primary:hover {
+    background-color: #1e4bb8;
+  }
+  .btn-secondary {
+    background-color: #e0e7ff;
+    color: #2563eb;
+    border: none;
+    margin-left: 10px;
+  }
+  .btn-secondary:hover {
+    background-color: #c1cdfd;
+  }
+  .btn-success {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+  }
+  .btn-success:hover {
+    background-color: #16a34a;
+  }
+  .summary-row {
+    margin-bottom: 2rem;
+  }
+  .summary-card {
+    text-align: center;
+    padding: 1.5rem 0;
+    border-radius: 20px;
+    background-color: #e3ebff;
+    box-shadow: 0 3px 12px rgba(38,78,192,0.18);
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #2563eb;
+  }
+  .summary-label {
+    font-weight: 500;
+    font-size: 1.1rem;
+    margin-top: 0.25rem;
+    color: #1e293b;
+  }
+  .table-responsive {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(44,62,80,0.08);
+  }
+  table {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 0.7rem !important;
+  }
+  thead {
+    background-color: #2563eb;
+    border-radius: 20px;
+  }
+  th {
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 14px 18px;
+    text-align: left;
+  }
+  tbody tr {
+    background: #f8fbff;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+    border-radius: 16px;
+  }
+  tbody tr:hover {
+    background-color: #eaf3ff;
+  }
+  td {
+    padding: 14px 18px;
+    font-size: 1rem;
+    vertical-align: middle;
+    color: #1e293b; 
+  }
+</style>
+
+<div class="record-card">
+  <div class="record-title">📊 Attendance Records Dashboard</div>
+
+  <form method="get" autocomplete="off">
+    <div class="row gx-3 gy-2 mb-3">
+      <div class="col-md-6">
+        <label for="date">Filter by Date</label>
+        <input type="date" id="date" name="date" class="compact-input" value="{{ request.args.get('date','') }}">
+      </div>
+      <div class="col-md-6">
+        <label for="employee">Employee Name</label>
+        <input type="text" id="employee" name="employee" placeholder="Enter employee name" class="compact-input" value="{{ request.args.get('employee','') }}">
+      </div>
     </div>
-    <div class="card-body">
-      <form method="GET" class="row g-3 mb-4 p-3 bg-light rounded">
-        <div class="col-md-3">
-          <label class="form-label">Filter by Date:</label>
-          <input type="date" name="date" class="form-control"
-                 value="{{ request.args.get('date','') }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Employee Name:</label>
-          <input type="text" name="employee" class="form-control"
-                 placeholder="Enter employee name"
-                 value="{{ request.args.get('employee','') }}">
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <button type="submit" class="btn btn-primary me-2">🔍 Filter Records</button>
-          <a href="{{ url_for('attendance_dashboard') }}" class="btn btn-secondary">🔄 Reset</a>
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <a href="{{ url_for('export_csv', date=request.args.get('date',''), employee=request.args.get('employee','')) }}"
-             class="btn btn-success">📄 Export CSV</a>
-        </div>
-      </form>
-      <div class="row mb-4">
-        <div class="col-md-4">
-          <div class="card bg-info text-white text-center">
-            <div class="card-body">
-              <h4>{{ records|length }}</h4>
-              <p>Total Records</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-success text-white text-center">
-            <div class="card-body">
-              <h4>{{ records|map(attribute='employee.id')|unique|list|length }}</h4>
-              <p>Unique Employees</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-warning text-white text-center">
-            <div class="card-body">
-              <h4>{{ unique_days_count }}</h4>
-              <p>Different Days</p>
-            </div>
-          </div>
-        </div>
+    <div class="text-center mb-4">
+      <button type="submit" class="btn btn-primary">Filter Records</button>
+      <a href="{{ url_for('attendance_dashboard') }}" class="btn btn-secondary">Reset</a>
+      <a href="{{ url_for('export_csv', date=request.args.get('date',''), employee=request.args.get('employee','')) }}" class="btn btn-success">Export CSV</a>
+    </div>
+  </form>
+
+  <div class="row summary-row gx-4">
+    <div class="col-md-4">
+      <div class="summary-card">
+        {{ records|length }}
+        <div class="summary-label">Total Records</div>
       </div>
-      {% if records %}
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th><th>👤 Employee Name</th><th>🏢 Department</th>
-              <th>📅 Date</th><th>🕐 Time</th><th>📧 Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in records %}
-            <tr>
-              <td>{{ loop.index }}</td>
-              <td>{{ r.employee.name }}</td>
-              <td>{{ r.employee.department }}</td>
-              <td>{{ r.timestamp.strftime('%Y-%m-%d') }}</td>
-              <td>{{ r.timestamp.strftime('%H:%M:%S') }}</td>
-              <td>{{ r.employee.email }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card">
+        {{ records|map(attribute='employee.id')|unique|list|length }}
+        <div class="summary-label">Unique Employees</div>
       </div>
-      {% else %}
-      <div class="text-center py-5">
-        <h4 class="text-muted">No attendance records found</h4>
-        <p>Try adjusting your filter criteria or check back later.</p>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card">
+        {{ unique_days_count }}
+        <div class="summary-label">Different Days</div>
       </div>
-      {% endif %}
     </div>
   </div>
+
+  {% if records %}
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>S.No.</th>
+          <th>Employee Name</th>
+          <th>Department</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ r.employee.name }}</td>
+          <td>{{ r.employee.department }}</td>
+          <td>{{ r.timestamp.strftime('%Y-%m-%d') }}</td>
+          <td>{{ r.timestamp.strftime('%H:%M:%S') }}</td>
+          <td>{{ r.employee.email }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-4">
+    <h5 class="text-muted">No attendance records found.</h5>
+    <p>Try adjusting the filter criteria or check back later.</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -4,33 +4,50 @@
   <meta charset="utf-8" />
   <title>Attendance System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.4.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
+  <style>
+    body { background: #f3f5fa;}
+    .navbar {
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(44,62,80,0.07);
+      margin-bottom: 2rem;
+    }
+    .navbar-brand { font-weight:600; font-size:1.4rem; color:#2563eb !important;}
+    .nav-btn {
+      background:#e6eeff !important;
+      color:#222b45 !important;
+      border:2px solid #baccf7; border-radius:99px;
+      padding: 0.51rem 1.5rem;
+      font-weight:600; font-size:1.08rem;
+      margin-right:.6rem; text-decoration:none !important;
+      box-shadow: 0 2px 10px rgba(44,62,80,0.07);
+      transition:filter 0.18s, background 0.18s;
+      display:inline-block;
+    }
+    .nav-btn:last-child { margin-right:0;}
+    .nav-btn:hover, .nav-btn:active {
+      background:#d6e6fc !important; color:#2563eb !important; border-color:#2563eb !important; filter:brightness(0.96);
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
 
 {% if current_user.is_authenticated %}
-<nav class="navbar navbar-expand-lg navbar-white bg-white shadow-sm mb-4">
+<nav class="navbar navbar-expand-lg">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">AttendanceApp</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu"
-      aria-controls="navmenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navmenu">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('attendance_dashboard') }}">Records</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('new_employee') }}">Employees</a></li>
-      </ul>
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a href="{{ url_for('logout') }}" class="nav-link text-danger">Logout</a></li>
-      </ul>
+    <a class="navbar-brand" href="{{ url_for('dashboard') }}">AttendanceApp</a>
+    <div>
+      <a href="{{ url_for('dashboard') }}" class="nav-btn">Dashboard</a>
+      <a href="{{ url_for('attendance_dashboard') }}" class="nav-btn">Records</a>
+      <a href="{{ url_for('new_employee') }}" class="nav-btn">Employees</a>
+      <a href="{{ url_for('logout') }}" class="nav-btn">Logout</a>
     </div>
   </div>
 </nav>
 {% endif %}
 
-<div class="container mb-5">{% block content %}{% endblock %}</div>
+<div class="container mb-5">
+  {% block content %}{% endblock %}
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.4.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
